@@ -33,6 +33,10 @@ export default function Navbar() {
             Dashboard
           </a>
 
+          <a href="/admin/prompts" className="hover:text-amber-300">
+            Admin
+          </a>
+
           <a
             href="/prompts"
             className="rounded-full bg-emerald-500 px-5 py-2 text-white hover:bg-emerald-400"
@@ -50,10 +54,10 @@ export default function Navbar() {
           </a>
 
           <a
-            href="/dashboard"
-            className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/20"
+            href="/admin/prompts"
+            className="rounded-full border border-amber-300/20 bg-amber-400/10 px-4 py-2 text-sm font-bold text-amber-200 hover:bg-amber-400/20"
           >
-            Dashboard
+            Admin
           </a>
         </div>
       </div>
