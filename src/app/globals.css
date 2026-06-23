@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #020617;
+  --foreground: #f8fafc;
+
+  --primary: #10b981;
+  --primary-soft: rgba(16, 185, 129, 0.12);
+
+  --gold: #f59e0b;
+  --gold-soft: rgba(245, 158, 11, 0.12);
+
+  --danger: #ef4444;
+  --card: rgba(255, 255, 255, 0.045);
+  --card-border: rgba(255, 255, 255, 0.1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(16, 185, 129, 0.16), transparent 32%),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 28%),
+    linear-gradient(135deg, #020617 0%, #07111f 50%, #020617 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-noto-thai), system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* scrollbar สวยขึ้น */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.7);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  border: 2px solid rgba(15, 23, 42, 0.7);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.5);
+}
+
+/* selection */
+::selection {
+  background: rgba(16, 185, 129, 0.35);
+  color: white;
+}
+
+/* ช่วยให้ input / textarea ดูดีขึ้นทุกหน้า */
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
+/* utility กลาง สำหรับ glass card */
+.glass-card {
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+}
+
+/* utility ปุ่มหลัก */
+.btn-primary {
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #10b981, #059669);
+  padding: 0.7rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: white;
+  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.2);
+  transition: 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  transform: translateY(-1px);
+}
+
+/* utility ปุ่มรอง */
+.btn-soft {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.055);
+  padding: 0.7rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: white;
+  transition: 0.2s ease;
+}
+
+.btn-soft:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* badge กลาง */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* ลดความใหญ่ของ heading ให้สมส่วน */
+.page-title {
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+.page-subtitle {
+  max-width: 42rem;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: rgb(148 163 184);
 }

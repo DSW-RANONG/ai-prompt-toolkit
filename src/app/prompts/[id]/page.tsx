@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { supabase } from "../../lib/supabaseClient";
+import Navbar from "@/app/components/Navbar";
+import { supabase } from "@/app/lib/supabaseClient";
 
 type PromptItem = {
   id: number;
@@ -19,20 +19,25 @@ type PromptItem = {
   created_at: string;
 };
 
-export default function PromptDetailPage() {
-  const params = useParams();
-
-  const [promptItem, setPromptItem] = useState<PromptItem | null>(null);
+export default function PromptDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const [prompt, setPrompt] = useState<PromptItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const id = Number(params.id);
-
   useEffect(() => {
-    fetchPromptDetail();
-  }, [id]);
+    async function loadPrompt() {
+      const resolvedParams = await params;
+      fetchPrompt(resolvedParams.id);
+    }
 
-  async function fetchPromptDetail() {
+    loadPrompt();
+  }, [params]);
+
+  async function fetchPrompt(id: string) {
     setIsLoading(true);
 
     const { data, error } = await supabase
@@ -44,221 +49,262 @@ export default function PromptDetailPage() {
 
     if (error) {
       console.error(error);
-      setPromptItem(null);
+      setPrompt(null);
       setIsLoading(false);
       return;
     }
 
-    setPromptItem(data);
+    setPrompt(data);
     setIsLoading(false);
   }
 
-  async function copyPrompt(text: string) {
-    if (!promptItem) return;
+  async function copyPrompt() {
+    if (!prompt) return;
 
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(prompt.prompt_text);
+
       setCopied(true);
-
-      await supabase
-        .from("prompts")
-        .update({
-          copy_count: promptItem.copy_count + 1,
-        })
-        .eq("id", promptItem.id);
-
-      setPromptItem({
-        ...promptItem,
-        copy_count: promptItem.copy_count + 1,
-      });
 
       setTimeout(() => {
         setCopied(false);
       }, 1500);
-    } catch {
-      alert("คัดลอกไม่สำเร็จ กรุณาคัดลอกด้วยตนเอง");
+
+      const newCount = prompt.copy_count + 1;
+
+      setPrompt({
+        ...prompt,
+        copy_count: newCount,
+      });
+
+      await supabase
+        .from("prompts")
+        .update({
+          copy_count: newCount,
+        })
+        .eq("id", prompt.id);
+    } catch (error) {
+      console.error(error);
+      alert("คัดลอก Prompt ไม่สำเร็จ");
     }
-  }
-
-  async function sharePrompt() {
-    const url = window.location.href;
-
-    try {
-      await navigator.clipboard.writeText(url);
-      alert("คัดลอกลิงก์ Prompt แล้ว");
-    } catch {
-      alert("คัดลอกลิงก์ไม่สำเร็จ กรุณาคัดลอก URL ด้วยตนเอง");
-    }
-  }
-
-  if (isLoading) {
-    return (
-      <main className="relative min-h-screen overflow-hidden bg-[#020617] text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.28),transparent_30%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.20),transparent_25%)]" />
-
-        <section className="relative z-10 mx-auto flex min-h-screen max-w-4xl items-center px-6 py-12">
-          <div className="w-full rounded-[2rem] border border-white/10 bg-white/10 p-10 text-center backdrop-blur">
-            <div className="text-5xl">⏳</div>
-            <h1 className="mt-4 text-3xl font-extrabold">
-              กำลังโหลด Prompt...
-            </h1>
-            <p className="mt-3 text-slate-300">
-              กำลังดึงข้อมูลจาก Supabase
-            </p>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  if (!promptItem) {
-    return (
-      <main className="relative min-h-screen overflow-hidden bg-[#020617] text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.28),transparent_30%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.20),transparent_25%)]" />
-
-        <section className="relative z-10 mx-auto max-w-4xl px-6 py-12">
-          <a
-            href="/prompts"
-            className="inline-flex rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-emerald-200 backdrop-blur hover:bg-white/20"
-          >
-            ← กลับไปคลัง Prompt
-          </a>
-
-          <div className="mt-10 rounded-[2rem] border border-white/10 bg-white/10 p-10 text-center backdrop-blur">
-            <div className="text-5xl">❌</div>
-
-            <h1 className="mt-4 text-3xl font-extrabold">
-              ไม่พบ Prompt นี้
-            </h1>
-
-            <p className="mt-3 text-slate-300">
-              อาจไม่มี Prompt หมายเลขนี้ หรือ Prompt นี้ยังไม่ถูกเผยแพร่
-            </p>
-          </div>
-        </section>
-      </main>
-    );
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#020617] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.28),transparent_30%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.20),transparent_25%)]" />
+    // คุมโทนสีพื้นหลังให้เหมือนหน้าหลัก
+    <main className="relative min-h-screen bg-slate-950 text-slate-50 selection:bg-emerald-500/30 overflow-hidden pb-20">
+      
+      {/* Background Grid Pattern & Ambient Glows */}
+      <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] fixed"></div>
+      <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] rounded-full bg-emerald-500/10 blur-[150px] pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] rounded-full bg-sky-500/10 blur-[150px] pointer-events-none"></div>
 
-      <section className="relative z-10 mx-auto max-w-4xl px-6 py-12">
-        <a
-          href="/prompts"
-          className="inline-flex rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-emerald-200 backdrop-blur hover:bg-white/20"
-        >
-          ← กลับไปคลัง Prompt
-        </a>
+      <Navbar />
 
-        <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/10 p-6 backdrop-blur md:p-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-emerald-400/10 px-4 py-2 text-sm font-bold text-emerald-200">
-              {promptItem.category}
-            </span>
-
-            <span className="rounded-full bg-amber-400/10 px-4 py-2 text-sm font-bold text-amber-200">
-              {promptItem.tool}
-            </span>
-
-            {promptItem.level && (
-              <span className="rounded-full bg-sky-400/10 px-4 py-2 text-sm font-bold text-sky-200">
-                {promptItem.level}
-              </span>
-            )}
-
-            {promptItem.subject && (
-              <span className="rounded-full bg-purple-400/10 px-4 py-2 text-sm font-bold text-purple-200">
-                {promptItem.subject}
-              </span>
-            )}
+      <section className="relative z-10 mx-auto max-w-5xl px-4 py-8 md:px-6 md:py-12">
+        {isLoading ? (
+          // --- Loading State ---
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/5 p-16 text-center backdrop-blur-xl shadow-2xl">
+            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
+            <div className="text-5xl animate-bounce">⏳</div>
+            <h1 className="mt-6 text-2xl font-black text-white">กำลังโหลดข้อมูล Prompt</h1>
+            <p className="mt-2 text-sm text-slate-400">กรุณารอสักครู่...</p>
           </div>
-
-          <h1 className="mt-6 text-4xl font-extrabold tracking-tight md:text-5xl">
-            {promptItem.title}
-          </h1>
-
-          <p className="mt-4 text-lg leading-relaxed text-slate-300">
-            {promptItem.description}
-          </p>
-
-          {promptItem.tags && promptItem.tags.length > 0 && (
-            <div className="mt-5 flex flex-wrap gap-2">
-              {promptItem.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold text-slate-300"
-                >
-                  #{tag}
-                </span>
-              ))}
+        ) : !prompt ? (
+          // --- Empty / Not Found State ---
+          <div className="relative rounded-[2rem] border border-white/5 bg-white/5 p-16 text-center backdrop-blur-xl shadow-2xl">
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-slate-800/50 border border-slate-700 text-5xl shadow-inner">
+              🔎
             </div>
-          )}
-
-          <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
-            <p className="text-sm text-slate-300">
-              จำนวนการคัดลอก:{" "}
-              <span className="font-extrabold text-emerald-300">
-                {promptItem.copy_count}
-              </span>{" "}
-              ครั้ง
+            <h1 className="mt-6 text-2xl font-black text-white">ไม่พบ Prompt นี้</h1>
+            <p className="mt-2 text-sm text-slate-400">
+              Prompt อาจถูกลบ หรือยังไม่ได้เปิดเผยแพร่
             </p>
+            <a 
+              href="/prompts" 
+              className="group relative mt-8 inline-flex items-center justify-center overflow-hidden rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 px-8 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all hover:scale-105"
+            >
+              <span className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100"></span>
+              กลับไปคลัง Prompt
+            </a>
           </div>
-
-          <div className="mt-8 rounded-[1.5rem] border border-white/10 bg-black/50 p-5">
-            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-lg font-extrabold text-white">
-                Prompt พร้อมใช้งาน
-              </h2>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={sharePrompt}
-                  className="rounded-full border border-white/10 bg-white/10 px-5 py-2 text-sm font-extrabold text-white hover:bg-white/20"
+        ) : (
+          // --- Prompt Content ---
+          <div className="space-y-6">
+            
+            {/* Header Card */}
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/5 p-6 backdrop-blur-xl shadow-2xl md:p-10">
+              
+              {/* Back Button & Badges */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <a
+                  href="/prompts"
+                  className="group inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-300 transition-all hover:bg-white/10 hover:text-white"
                 >
-                  แชร์ลิงก์
-                </button>
+                  <span className="transition-transform group-hover:-translate-x-1">←</span> 
+                  กลับคลัง Prompt
+                </a>
 
-                <button
-                  onClick={() => copyPrompt(promptItem.prompt_text)}
-                  className="rounded-full bg-emerald-500 px-5 py-2 text-sm font-extrabold text-white hover:bg-emerald-400"
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 shadow-sm">
+                    {prompt.category}
+                  </span>
+                  <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 shadow-sm">
+                    {prompt.tool}
+                  </span>
+                </div>
+              </div>
+
+              {/* Title & Description */}
+              <div className="mt-8">
+                <h1 className="text-3xl font-black leading-tight tracking-tight text-white md:text-4xl lg:text-5xl">
+                  {prompt.title}
+                </h1>
+                <p className="mt-4 text-base leading-relaxed text-slate-300 md:text-lg">
+                  {prompt.description || "ไม่มีคำอธิบายสำหรับ Prompt นี้"}
+                </p>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-slate-950/50 p-4 shadow-inner">
+                  <div className="text-xl">🆔</div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">รหัส Prompt</p>
+                    <p className="font-black text-white">{prompt.id}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/10 bg-emerald-500/5 p-4 shadow-inner">
+                  <div className="text-xl">📋</div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500/70">คัดลอกไปแล้ว</p>
+                    <p className="font-black text-emerald-300">{prompt.copy_count} ครั้ง</p>
+                  </div>
+                </div>
+
+                {prompt.level && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-slate-950/50 p-4 shadow-inner">
+                    <div className="text-xl">🎓</div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">ระดับชั้น</p>
+                      <p className="font-black text-white">{prompt.level}</p>
+                    </div>
+                  </div>
+                )}
+
+                {prompt.subject && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-slate-950/50 p-4 shadow-inner">
+                    <div className="text-xl">📚</div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">รายวิชา</p>
+                      <p className="font-black text-white">{prompt.subject}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tags */}
+              {prompt.tags && prompt.tags.length > 0 && (
+                <div className="mt-6 flex flex-wrap gap-2 pt-6 border-t border-white/5">
+                  {prompt.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Prompt Content Box (กล่องข้อความ Prompt) */}
+            <div className="relative overflow-hidden rounded-[2rem] border border-emerald-500/20 bg-slate-950/80 shadow-[0_0_40px_rgba(16,185,129,0.05)] backdrop-blur-xl">
+              <div className="flex flex-col gap-4 border-b border-white/10 bg-white/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-white">เนื้อหา Prompt</h2>
+                    <p className="text-xs text-slate-400">
+                      คัดลอกข้อความด้านล่าง แล้วนำไปใช้กับเครื่องมือ AI
+                    </p>
+                  </div>
+                </div>
+
+                {/* ปุ่มคัดลอกหลัก */}
+                <button 
+                  onClick={copyPrompt} 
+                  className={`group relative overflow-hidden rounded-full px-6 py-2.5 text-sm font-bold transition-all shadow-lg ${
+                    copied 
+                      ? "bg-emerald-500 text-white shadow-emerald-500/40" 
+                      : "bg-white/10 text-white hover:bg-emerald-500 hover:shadow-emerald-500/40"
+                  }`}
                 >
-                  {copied ? "คัดลอกแล้ว ✓" : "คัดลอก"}
+                  <span className="flex items-center gap-2">
+                    {copied ? (
+                      <>
+                        <span>✓</span> คัดลอกแล้ว
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        คัดลอก Prompt
+                      </>
+                    )}
+                  </span>
                 </button>
+              </div>
+
+              {/* พื้นที่แสดงข้อความ (ตกแต่ง Scrollbar ด้วย Tailwind Arbitrary Variants) */}
+              <div className="p-6">
+                <pre className="max-h-[500px] overflow-auto whitespace-pre-wrap rounded-2xl bg-black/50 p-6 font-mono text-sm leading-relaxed text-emerald-50/90 shadow-inner [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-emerald-500/50">
+                  {prompt.prompt_text}
+                </pre>
               </div>
             </div>
 
-            <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap rounded-2xl bg-black/40 p-5 text-sm leading-relaxed text-slate-200 md:text-base">
-              {promptItem.prompt_text}
-            </pre>
-          </div>
+            {/* Instructions Section */}
+            <div className="rounded-[2rem] border border-white/5 bg-white/5 p-6 backdrop-blur-xl md:p-8">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">💡</span>
+                <h2 className="text-xl font-black text-white">คำแนะนำการใช้งาน</h2>
+              </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <h3 className="font-extrabold text-emerald-200">
-                วิธีใช้งาน
-              </h3>
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <div className="group rounded-2xl border border-white/5 bg-slate-950/50 p-5 transition-all hover:-translate-y-1 hover:border-emerald-500/30 hover:bg-slate-900">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-sm font-black text-emerald-400">1</div>
+                  <h3 className="mt-4 text-sm font-black text-white group-hover:text-emerald-300">คัดลอก Prompt</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                    กดปุ่มคัดลอก แล้วนำข้อความไปวางใน ChatGPT หรือเครื่องมือ AI ที่ต้องการ
+                  </p>
+                </div>
 
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                กดคัดลอก Prompt แล้วนำไปวางในเครื่องมือ AI เช่น ChatGPT,
-                Gemini หรือเครื่องมือที่ระบุไว้ จากนั้นเติมข้อมูลในช่อง ...
-                ให้ตรงกับบทเรียนของครู
-              </p>
+                <div className="group rounded-2xl border border-white/5 bg-slate-950/50 p-5 transition-all hover:-translate-y-1 hover:border-amber-500/30 hover:bg-slate-900">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-sm font-black text-amber-400">2</div>
+                  <h3 className="mt-4 text-sm font-black text-white group-hover:text-amber-300">ปรับข้อมูลรายวิชา</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                    เปลี่ยน [ข้อความในวงเล็บ] เช่น ระดับชั้น รายวิชา หรือหัวข้อให้ตรงกับงานของคุณ
+                  </p>
+                </div>
+
+                <div className="group rounded-2xl border border-white/5 bg-slate-950/50 p-5 transition-all hover:-translate-y-1 hover:border-sky-500/30 hover:bg-slate-900">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sm font-black text-sky-400">3</div>
+                  <h3 className="mt-4 text-sm font-black text-white group-hover:text-sky-300">ตรวจทานก่อนใช้จริง</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                    ตรวจสอบความถูกต้องของเนื้อหา ภาษา และปรับแก้ให้เข้ากับบริบทของผู้เรียน
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <h3 className="font-extrabold text-amber-200">
-                เหมาะสำหรับ
-              </h3>
-
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                ครูที่ต้องการสร้างสื่อการสอน เอกสาร กิจกรรม หรือเนื้อหา
-                ได้รวดเร็วขึ้น และนำไปปรับใช้กับบริบทของโรงเรียนได้จริง
-              </p>
-            </div>
           </div>
-        </div>
+        )}
       </section>
     </main>
   );
